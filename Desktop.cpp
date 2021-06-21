@@ -158,12 +158,12 @@ void PinView(CComPtr<IServiceProvider> pServiceProvider, HWND hWnd, BOOL bPin)
     if (bPin)
     {
         if (FAILED(pVirtualDesktopPinnedApps->PinView(pView)))
-            _ftprintf(stderr, L"FAILED IsViewPinned %d\n", __LINE__);
+            _ftprintf(stderr, L"FAILED PinView %d\n", __LINE__);
     }
     else
     {
         if (FAILED(pVirtualDesktopPinnedApps->UnpinView(pView)))
-            _ftprintf(stderr, L"FAILED IsViewPinned %d\n", __LINE__);
+            _ftprintf(stderr, L"FAILED UnpinView %d\n", __LINE__);
     }
 }
 

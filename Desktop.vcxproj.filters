@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ComUtils.h" />
+    <ClInclude Include="Win10Desktops.h" />
   </ItemGroup>
 </Project>
