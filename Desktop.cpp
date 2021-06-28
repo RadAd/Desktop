@@ -37,7 +37,7 @@ void ListViews(CComPtr<IServiceProvider> pServiceProvider)
             BOOL bShowInSwitchers = FALSE;
             if (FAILED(pView->GetShowInSwitchers(&bShowInSwitchers)))
                 _ftprintf(stderr, L"FAILED GetShowInSwitchers %d\n", __LINE__);
-            
+
             if (!bShowInSwitchers)
                 continue;
 
@@ -88,8 +88,10 @@ void ListDesktops(CComPtr<IServiceProvider> pServiceProvider)
     CComPtr<IObjectArray> pDesktopArray;
     if (pDesktopManagerInternal && SUCCEEDED(pDesktopManagerInternal->GetDesktops(&pDesktopArray)))
     {
+        int dn = 0;
         for (CComPtr<IVirtualDesktop2> pDesktop : ObjectArrayRange<IVirtualDesktop2>(pDesktopArray))
         {
+            ++dn;
             GUID guid;
             pDesktop->GetID(&guid);
 
@@ -101,9 +103,13 @@ void ListDesktops(CComPtr<IServiceProvider> pServiceProvider)
             if (FAILED(pDesktop->GetName(&s)))
                 _ftprintf(stderr, L"FAILED GetName %d\n", __LINE__);
 
-            _tprintf(L"%s %s\n", guidString, WindowsGetStringRawBuffer(s, nullptr));
+            if (s != nullptr)
+                _tprintf(L"%s %s\n", guidString, WindowsGetStringRawBuffer(s, nullptr));
+            else
+                _tprintf(L"%s Desktop %d\n", guidString, dn);
 
             ::CoTaskMemFree(guidString);
+            WindowsDeleteString(s);
 
             if (pViewArray)
             {
