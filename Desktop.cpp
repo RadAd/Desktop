@@ -19,7 +19,54 @@ const IID IID_IApplicationViewCollection = {
     0x1841C6D7, 0x4F9D, 0x42C0, { 0xAF, 0x41, 0x87, 0x47, 0x53, 0x8F, 0x10, 0xE5 }
 };
 
-void ListViews(CComPtr<IServiceProvider> pServiceProvider)
+void PrintDesktop(IVirtualDesktop2* pDesktop, int dn)
+{
+    GUID guid;
+    pDesktop->GetID(&guid);
+
+    OLECHAR* guidString;
+    if (FAILED(StringFromCLSID(guid, &guidString)))
+        _ftprintf(stderr, L"FAILED StringFromCLSID %d\n", __LINE__);
+
+    HSTRING s = NULL;
+    if (FAILED(pDesktop->GetName(&s)))
+        _ftprintf(stderr, L"FAILED GetName %d\n", __LINE__);
+
+    if (s != nullptr)
+        _tprintf(L"%s %s\n", guidString, WindowsGetStringRawBuffer(s, nullptr));
+    else
+        _tprintf(L"%s Desktop %d\n", guidString, dn);
+
+    ::CoTaskMemFree(guidString);
+    WindowsDeleteString(s);
+}
+
+void ShowCurrentDesktop(IServiceProvider* pServiceProvider)
+{
+    CComPtr<IVirtualDesktopManagerInternal> pDesktopManagerInternal;
+    if (FAILED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal)))
+        _ftprintf(stderr, L"FAILED obtaining CLSID_VirtualDesktopManagerInternal %d\n", __LINE__);
+
+    CComPtr<IVirtualDesktop> pCurrentDesktop;
+    if (FAILED(pDesktopManagerInternal->GetCurrentDesktop(&pCurrentDesktop)))
+        _ftprintf(stderr, L"FAILED GetCurrentDesktop %d\n", __LINE__);
+
+    CComPtr<IObjectArray> pDesktopArray;
+    if (pDesktopManagerInternal && SUCCEEDED(pDesktopManagerInternal->GetDesktops(&pDesktopArray)))
+    {
+        int dn = 0;
+        for (CComPtr<IVirtualDesktop2> pDesktop : ObjectArrayRange<IVirtualDesktop2>(pDesktopArray))
+        {
+            if (pDesktop.IsEqualObject(pCurrentDesktop))
+            {
+                ++dn;
+                PrintDesktop(pDesktop, dn);
+            }
+        }
+    }
+}
+
+void ListViews(IServiceProvider* pServiceProvider)
 {
     CComPtr<IVirtualDesktopPinnedApps> pVirtualDesktopPinnedApps;
     if (FAILED(pServiceProvider->QueryService(CLSID_VirtualDesktopPinnedApps, &pVirtualDesktopPinnedApps)))
@@ -67,7 +114,7 @@ void ListViews(CComPtr<IServiceProvider> pServiceProvider)
     }
 }
 
-void ListDesktops(CComPtr<IServiceProvider> pServiceProvider)
+void ListDesktops(IServiceProvider* pServiceProvider)
 {
     CComPtr<IVirtualDesktopManagerInternal> pDesktopManagerInternal;
     if (FAILED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal)))
@@ -92,24 +139,8 @@ void ListDesktops(CComPtr<IServiceProvider> pServiceProvider)
         for (CComPtr<IVirtualDesktop2> pDesktop : ObjectArrayRange<IVirtualDesktop2>(pDesktopArray))
         {
             ++dn;
-            GUID guid;
-            pDesktop->GetID(&guid);
 
-            OLECHAR* guidString;
-            if (FAILED(StringFromCLSID(guid, &guidString)))
-                _ftprintf(stderr, L"FAILED StringFromCLSID %d\n", __LINE__);
-
-            HSTRING s = NULL;
-            if (FAILED(pDesktop->GetName(&s)))
-                _ftprintf(stderr, L"FAILED GetName %d\n", __LINE__);
-
-            if (s != nullptr)
-                _tprintf(L"%s %s\n", guidString, WindowsGetStringRawBuffer(s, nullptr));
-            else
-                _tprintf(L"%s Desktop %d\n", guidString, dn);
-
-            ::CoTaskMemFree(guidString);
-            WindowsDeleteString(s);
+            PrintDesktop(pDesktop, dn);
 
             if (pViewArray)
             {
@@ -147,7 +178,7 @@ void ListDesktops(CComPtr<IServiceProvider> pServiceProvider)
     }
 }
 
-void PinView(CComPtr<IServiceProvider> pServiceProvider, HWND hWnd, BOOL bPin)
+void PinView(IServiceProvider* pServiceProvider, HWND hWnd, BOOL bPin)
 {
     CComPtr<IVirtualDesktopPinnedApps> pVirtualDesktopPinnedApps;
     if (FAILED(pServiceProvider->QueryService(CLSID_VirtualDesktopPinnedApps, &pVirtualDesktopPinnedApps)))
@@ -191,7 +222,7 @@ HWND GetWindow(const TCHAR* s)
         return static_cast<HWND>(UlongToHandle(_tcstoul(s, nullptr, 0)));
 }
 
-CComPtr<IVirtualDesktop> GetAdjacentDesktop(CComPtr<IVirtualDesktopManagerInternal> pDesktopManagerInternal, AdjacentDesktop uDirection)
+CComPtr<IVirtualDesktop> GetAdjacentDesktop(IVirtualDesktopManagerInternal* pDesktopManagerInternal, AdjacentDesktop uDirection)
 {
     CComPtr<IVirtualDesktop> pDesktop;
     if (FAILED(pDesktopManagerInternal->GetCurrentDesktop(&pDesktop)))
@@ -204,7 +235,7 @@ CComPtr<IVirtualDesktop> GetAdjacentDesktop(CComPtr<IVirtualDesktopManagerIntern
     return pAdjacentDesktop;
 }
 
-CComPtr<IVirtualDesktop> GetDesktop(CComPtr<IVirtualDesktopManagerInternal> pDesktopManagerInternal, const TCHAR* sDesktop)
+CComPtr<IVirtualDesktop> GetDesktop(IVirtualDesktopManagerInternal* pDesktopManagerInternal, const TCHAR* sDesktop)
 {
     // TODO Support
     // by name
@@ -265,7 +296,7 @@ CComPtr<IVirtualDesktop> GetDesktop(CComPtr<IVirtualDesktopManagerInternal> pDes
     }
 }
 
-void SwitchDesktop(CComPtr<IVirtualDesktopManagerInternal> pDesktopManagerInternal, CComPtr<IVirtualDesktop> pDesktop)
+void SwitchDesktop(IVirtualDesktopManagerInternal* pDesktopManagerInternal, CComPtr<IVirtualDesktop> pDesktop)
 {
     if (pDesktop)
     {
@@ -292,7 +323,9 @@ int _tmain(int argc, const TCHAR* const argv[])
         const TCHAR* wnd = argc > 1 ? argv[2] : nullptr;
         const TCHAR* desktop = argc > 1 ? argv[2] : nullptr;
 
-        if (cmd != nullptr && _tcsicmp(cmd, _T("views")) == 0)
+        if (cmd != nullptr && _tcsicmp(cmd, _T("current")) == 0)
+            ShowCurrentDesktop(pServiceProvider);
+        else if (cmd != nullptr && _tcsicmp(cmd, _T("views")) == 0)
             ListViews(pServiceProvider);
         else if (cmd != nullptr && _tcsicmp(cmd, _T("list")) == 0)
             ListDesktops(pServiceProvider);
@@ -312,6 +345,7 @@ int _tmain(int argc, const TCHAR* const argv[])
         {
             _tprintf(L"Desktop [cmd] <options>\n\n");
             _tprintf(L"where [cmd] is one of:\n");
+            _tprintf(L"  current\n");
             _tprintf(L"  list\n");
             _tprintf(L"  views\n");
             _tprintf(L"  pin <HWND>\n");
