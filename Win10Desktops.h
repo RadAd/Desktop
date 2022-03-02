@@ -1,5 +1,8 @@
 // https://github.com/Ciantic/VirtualDesktopAccessor
 
+// See for more up-to-date
+// https://github.com/skottmckay/VirtualDesktopAccessor
+
 #pragma once
 
 //#include "framework.h"
