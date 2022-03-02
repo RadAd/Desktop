@@ -18,18 +18,18 @@ struct SourceLocation
 
 #define SRC_LOC SourceLocation(__LINE__, _T(__FILE__), _T(__FUNCTION__), _T(__FUNCSIG__))
 
-inline bool Validate(HRESULT hr, const WCHAR* msg, const SourceLocation& src_loc)
+inline bool Validate(HRESULT hr, const LPCTSTR msg, const SourceLocation& src_loc)
 {
     if (FAILED(hr))
     {
-        _ftprintf(stderr, L"FAILED [%s(%d)] %#10.8x: %s\n", src_loc.file, src_loc.line, hr, msg);
+        _ftprintf(stderr, _T("FAILED [%s(%d)] %#10.8x: %s\n"), src_loc.file, src_loc.line, hr, msg);
         return false;
     }
     else
         return true;
 }
 
-inline bool ValidateIgnore(HRESULT hr, HRESULT ignore, const WCHAR* msg, const SourceLocation& src_loc)
+inline bool ValidateIgnore(HRESULT hr, HRESULT ignore, const LPCTSTR msg, const SourceLocation& src_loc)
 {
     return hr == ignore ? true : Validate(hr, msg, src_loc);
 }
