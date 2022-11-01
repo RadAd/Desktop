@@ -6,38 +6,23 @@
 #pragma once
 
 //#include "framework.h"
+#include <cstdint>
 #include <inspectable.h>
 #include <ObjectArray.h>
 
 #define FC_USER_MARSHAL void
 
-#ifdef VD_REG
+class DECLSPEC_UUID("C2F03A33-21F5-47FA-B4BB-156362A2F239") ImmersiveShell;
+const CLSID CLSID_ImmersiveShell = __uuidof(ImmersiveShell);
 
-const IID IID_IServiceProvider = {
-    0x6D5140C1, 0x7436, 0x11CE, { 0x80, 0x34, 0x00, 0xAA, 0x00, 0x60, 0x09, 0xFA }
-};
+class DECLSPEC_UUID("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B") VirtualDesktopManagerInternal;
+const CLSID CLSID_VirtualDesktopManagerInternal = __uuidof(VirtualDesktopManagerInternal);
 
-#endif
+class DECLSPEC_UUID("A501FDEC-4A09-464C-AE4E-1B9C21B84918") VirtualNotificationService;
+const CLSID CLSID_VirtualNotificationService = __uuidof(VirtualNotificationService);
 
-const CLSID CLSID_ImmersiveShell = {
-    0xC2F03A33, 0x21F5, 0x47FA, { 0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39 }
-};
-
-const CLSID CLSID_VirtualDesktopManagerInternal = {
-    0xC5E0CDCA, 0x7B6E, 0x41B2, { 0x9F, 0xC4, 0xD9, 0x39, 0x75, 0xCC, 0x46, 0x7B }
-};
-
-const CLSID CLSID_IVirtualNotificationService = {
-    0xA501FDEC, 0x4A09, 0x464C, { 0xAE, 0x4E, 0x1B, 0x9C, 0x21, 0xB8, 0x49, 0x18 }
-};
-
-const CLSID CLSID_IVirtualDesktopManager = {
-    0XAA509086, 0X5CA9, 0X4C25, { 0X8F, 0X95, 0X58, 0X9D, 0X3C, 0X07, 0XB4, 0X8A }
-};
-
-const CLSID CLSID_VirtualDesktopPinnedApps = {
-    0XB5A399E7, 0X1C87, 0X46B8, { 0X88, 0XE9, 0XFC, 0X57, 0X47, 0XB1, 0X71, 0XBD }
-};
+class DECLSPEC_UUID("B5A399E7-1C87-46B8-88E9-FC5747B171BD") VirtualDesktopPinnedApps;
+const CLSID CLSID_VirtualDesktopPinnedApps = __uuidof(VirtualDesktopPinnedApps);
 
 // Ignore following API's:
 interface IAsyncCallback;
@@ -147,7 +132,7 @@ IVirtualDesktop : public IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE IsViewVisible(
-        _In_ IApplicationView * pView,
+        _In_ IApplicationView* pView,
         _Out_ BOOL* pfVisible) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetID(
@@ -171,8 +156,8 @@ IVirtualDesktop : public IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE IsViewVisible(
-        _In_ IApplicationView * pView,
-        _Out_ BOOL * pfVisible) = 0;
+        _In_ IApplicationView* pView,
+        _Out_ BOOL* pfVisible) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetID(
         _Out_ GUID* pGuid) = 0;
@@ -180,8 +165,8 @@ public:
     virtual HRESULT STDMETHODCALLTYPE GetMonitor(
         _Out_ HMONITOR* pMonitor) = 0;
 
-    virtual HRESULT STDMETHODCALLTYPE Proc6(    // Get Name ???
-        _Out_ FC_USER_MARSHAL** p0) = 0;
+    virtual HRESULT STDMETHODCALLTYPE GetName(    // Get Name ???
+        _Out_ HSTRING* p0) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE Proc7(    // Get Wallpaper ???
         _Out_ FC_USER_MARSHAL** p0) = 0;
@@ -338,10 +323,10 @@ public:
         _In_ IApplicationView* p0,
         _In_ IApplicationView* p1) = 0;
 
-    virtual HRESULT STDMETHODCALLTYPE Proc19(
+    virtual HRESULT STDMETHODCALLTYPE Proc19(   // Get per monitor  ???
         _Out_ int64_t* p0) = 0;
 
-    virtual HRESULT STDMETHODCALLTYPE Proc20(
+    virtual HRESULT STDMETHODCALLTYPE Proc20(   // Set per monitor ???
         _In_ int64_t p0) = 0;
 };
 
@@ -354,7 +339,7 @@ IVirtualDesktopNotification : public IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE VirtualDesktopCreated(
-        _In_ IVirtualDesktop * pDesktop) = 0;
+        _In_ IVirtualDesktop* pDesktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyBegin(
         _In_ IVirtualDesktop* pDesktopDestroyed,
@@ -381,7 +366,7 @@ IVirtualDesktopNotification2 : public IVirtualDesktopNotification
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE VirtualDesktopNameChanged(
-        _In_ IVirtualDesktop * pDesktop,
+        _In_ IVirtualDesktop* pDesktop,
         _In_ HSTRING p1) = 0;
 };
 
@@ -395,7 +380,7 @@ IVirtualDesktopNotification : public IUnknown
 public:
     virtual HRESULT STDMETHODCALLTYPE VirtualDesktopCreated(
         _In_ IObjectArray* monitors,
-        _In_ IVirtualDesktop * pDesktop) = 0;
+        _In_ IVirtualDesktop* pDesktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyBegin(
         _In_ IObjectArray* monitors,
