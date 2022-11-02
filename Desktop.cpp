@@ -20,42 +20,6 @@ typename ATL::CComPtr<T>::_PtrClass* operator-(const ATL::CComPtr<T>& p)
 {
     return static_cast<typename ATL::CComPtr<T>::_PtrClass*>(p);
 }
-    
-template <class VDMI, class VD>
-HRESULT GetCurrentDesktop(VDMI* pDesktopManagerInternal, VD** desktop)
-{
-    return pDesktopManagerInternal->GetCurrentDesktop(desktop);
-}
-
-template <>
-HRESULT GetCurrentDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop** desktop)
-{
-    return pDesktopManagerInternal->GetCurrentDesktop(NULL, desktop);
-}
-
-template <class VDMI>
-HRESULT GetDesktops(VDMI* pDesktopManagerInternal, IObjectArray** ppDesktops)
-{
-    return pDesktopManagerInternal->GetDesktops(ppDesktops);
-}
-
-template <>
-HRESULT GetDesktops(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, IObjectArray** ppDesktops)
-{
-    return pDesktopManagerInternal->GetDesktops(NULL, ppDesktops);
-}
-
-template <class VDMI, class VD>
-HRESULT SwitchDesktop(VDMI* pDesktopManagerInternal, VD* desktop)
-{
-    return pDesktopManagerInternal->SwitchDesktop(desktop);
-}
-
-template <>
-HRESULT SwitchDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop* desktop)
-{
-    return pDesktopManagerInternal->SwitchDesktop(NULL, desktop);
-}
 
 template <class VD>
 void PrintDesktop(VD* pDesktop, int dn)
@@ -381,6 +345,40 @@ int SwitchDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop)
     }
 }
 
+template <class VDTypes>
+int RenameDesktop(typename VDTypes::IVirtualDesktopManagerInternal2* pDesktopManagerInternal, CComPtr<typename VDTypes::IVirtualDesktop> pDesktop, LPCTSTR strName)
+{
+    if (pDesktop)
+    {
+        HSTRING hName = NULL;
+        CHECK(WindowsCreateString(strName, UINT32(_tcslen(strName)), &hName), _T("WindowsCreateString"), EXIT_FAILURE);
+        CHECK(pDesktopManagerInternal->SetName(pDesktop, hName), _T("SwitchDesktop"), EXIT_FAILURE);
+        CHECK(WindowsDeleteString(hName), _T("WindowsDeleteString"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        _ftprintf(stderr, _T("Unknown desktop\n"));
+        return EXIT_FAILURE;
+    }
+}
+
+int RenameDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop, LPCTSTR strName)
+{
+    CComPtr<Win10::IVirtualDesktopManagerInternal2> pDesktopManagerInternal10;
+    CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
+    //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+    if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
+        return RenameDesktop<Win10VDTypes>(pDesktopManagerInternal10, GetDesktop<Win10VDTypes>(pDesktopManagerInternal10, strDesktop), strName);
+    else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
+        return RenameDesktop<Win11VDTypes>(pDesktopManagerInternal11, GetDesktop<Win11VDTypes>(pDesktopManagerInternal11, strDesktop), strName);
+    else
+    {
+        CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+}
+
 int _tmain(int argc, const TCHAR* const argv[])
 {
     CHECK(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED), _T("CoInitialize"), EXIT_FAILURE);
@@ -393,6 +391,7 @@ int _tmain(int argc, const TCHAR* const argv[])
         const TCHAR* wnd = argc > 1 ? argv[2] : nullptr;
         const TCHAR* desktop = argc > 1 ? argv[2] : nullptr;
         const TCHAR* showviews = argc > 1 ? argv[2] : nullptr;
+        const TCHAR* name = argc > 1 ? argv[3] : nullptr;
 
         if (cmd != nullptr && _tcsicmp(cmd, _T("current")) == 0)
             return ShowCurrentDesktop(pServiceProvider);
@@ -406,6 +405,8 @@ int _tmain(int argc, const TCHAR* const argv[])
             return PinView(pServiceProvider, GetWindow(wnd), FALSE);
         else if (cmd != nullptr && desktop != nullptr && _tcsicmp(cmd, _T("switch")) == 0)
             return SwitchDesktop(pServiceProvider, desktop);
+        else if (cmd != nullptr && desktop != nullptr && _tcsicmp(cmd, _T("rename")) == 0 && name != nullptr)
+            return RenameDesktop(pServiceProvider, desktop, name);
         else
         {
             _tprintf(_T("Desktop [cmd] <options>\n\n"));
@@ -416,9 +417,16 @@ int _tmain(int argc, const TCHAR* const argv[])
             _tprintf(_T("  pin <HWND>\n"));
             _tprintf(_T("  unpin <HWND>\n"));
             _tprintf(_T("  switch <desktop>\n"));
+            _tprintf(_T("  rename <desktop> <name>\n"));
             //_tprintf(_T("  create <name>\n"));
             //_tprintf(_T("  remove <desktop>\n"));
-            //_tprintf(_T("  rename <desktop> <name>\n"));
+            _tprintf(_T("\n"));
+            _tprintf(_T("where <desktop> is one of:>\n"));
+            _tprintf(_T("  {current}\n"));
+            _tprintf(_T("  {prev}\n"));
+            _tprintf(_T("  {next}\n"));
+            _tprintf(_T("  [desktop number]\n"));
+            _tprintf(_T("  [desktop name]\n"));
         }
     }
 
