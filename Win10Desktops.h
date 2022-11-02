@@ -361,6 +361,8 @@ public:
         _In_ IVirtualDesktop* pDesktopNew) = 0;
 };
 
+const __declspec(selectany) IID& IID_IVirtualDesktopNotification = __uuidof(IVirtualDesktopNotification);
+
 MIDL_INTERFACE("1BA7CF30-3591-43FA-ABFA-4AAF7ABEEDB7")
 IVirtualDesktopNotification2 : public IVirtualDesktopNotification
 {
@@ -423,6 +425,8 @@ public:
         _In_ HSTRING name) = 0;
 };
 
+const __declspec(selectany) IID& IID_IVirtualDesktopNotification = __uuidof(IVirtualDesktopNotification);
+
 }
 
 MIDL_INTERFACE("0CD45E71-D927-4F15-8B0A-8FEF525337BF")
@@ -458,37 +462,37 @@ struct Win11VDTypes
 };
 
 template <class VDMI, class VD>
-HRESULT GetCurrentDesktop(VDMI* pDesktopManagerInternal, VD** desktop)
+inline HRESULT GetCurrentDesktop(VDMI* pDesktopManagerInternal, VD** desktop)
 {
     return pDesktopManagerInternal->GetCurrentDesktop(desktop);
 }
 
 template <>
-HRESULT GetCurrentDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop** desktop)
+inline HRESULT GetCurrentDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop** desktop)
 {
     return pDesktopManagerInternal->GetCurrentDesktop(NULL, desktop);
 }
 
 template <class VDMI>
-HRESULT GetDesktops(VDMI* pDesktopManagerInternal, IObjectArray** ppDesktops)
+inline HRESULT GetDesktops(VDMI* pDesktopManagerInternal, IObjectArray** ppDesktops)
 {
     return pDesktopManagerInternal->GetDesktops(ppDesktops);
 }
 
 template <>
-HRESULT GetDesktops(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, IObjectArray** ppDesktops)
+inline HRESULT GetDesktops(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, IObjectArray** ppDesktops)
 {
     return pDesktopManagerInternal->GetDesktops(NULL, ppDesktops);
 }
 
 template <class VDMI, class VD>
-HRESULT SwitchDesktop(VDMI* pDesktopManagerInternal, VD* desktop)
+inline HRESULT SwitchDesktop(VDMI* pDesktopManagerInternal, VD* desktop)
 {
     return pDesktopManagerInternal->SwitchDesktop(desktop);
 }
 
 template <>
-HRESULT SwitchDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop* desktop)
+inline HRESULT SwitchDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop* desktop)
 {
     return pDesktopManagerInternal->SwitchDesktop(NULL, desktop);
 }
