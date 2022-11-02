@@ -436,3 +436,23 @@ public:
     virtual HRESULT STDMETHODCALLTYPE Unregister(
         _In_ DWORD dwCookie) = 0;
 };
+
+struct Win10VDTypes
+{
+    typedef Win10::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal;
+    typedef Win10::IVirtualDesktopManagerInternal2 IVirtualDesktopManagerInternal2;
+    typedef Win10::IVirtualDesktopManagerInternal3 IVirtualDesktopManagerInternal3;
+    typedef Win10::IVirtualDesktop IVirtualDesktop;
+    typedef Win10::IVirtualDesktop2 IVirtualDesktop2;
+    typedef Win10::IVirtualDesktopNotification IVirtualDesktopNotification;
+};
+
+struct Win11VDTypes
+{
+    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal;
+    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal2;
+    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal3;
+    typedef Win11::IVirtualDesktop IVirtualDesktop;
+    typedef Win11::IVirtualDesktop IVirtualDesktop2;
+    typedef Win11::IVirtualDesktopNotification IVirtualDesktopNotification;
+};
