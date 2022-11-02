@@ -275,7 +275,7 @@ CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
         return GetAdjacentDesktop<VD>(pDesktopManagerInternal, RightDirection);
     else if (std::_istdigit(sDesktop[0]))
     {
-        int i = _tstoi(sDesktop);
+        int i = _tstoi(sDesktop) - 1;
 
         CComPtr<IObjectArray> pDesktopArray;
         CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), {});
@@ -379,7 +379,85 @@ int RenameDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop, LPCTST
     }
 }
 
-int _tmain(int argc, const TCHAR* const argv[])
+template <class VD, class VD2 = VD, class VDMI>
+int CreateDesktop(VDMI* pDesktopManagerInternal, LPCTSTR strName)
+{
+    CComPtr<VD> pNewDesktop;
+    CHECK(CreateDesktop(pDesktopManagerInternal, &pNewDesktop), _T("CreateDesktop"), EXIT_FAILURE);
+
+    if (strName != nullptr)
+    {
+        CComQIPtr<VD2> pNewDesktop2(pNewDesktop);
+        return RenameDesktop(pDesktopManagerInternal, -pNewDesktop2, strName);
+    }
+    else
+        return EXIT_SUCCESS;
+}
+
+int CreateDesktop(IServiceProvider* pServiceProvider, LPCTSTR strName)
+{
+    CComPtr<Win10::IVirtualDesktopManagerInternal2> pDesktopManagerInternal10;
+    CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
+    //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+    if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
+        return CreateDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strName);
+    else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
+        return CreateDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strName);
+    else
+    {
+        CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+}
+
+template <class VD, class VDMI>
+int RemoveDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop)
+{
+    if (pDesktop)
+    {
+        CComPtr<VD> pFallbackDesktop;
+        CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pFallbackDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
+        if (pFallbackDesktop.IsEqualObject(pDesktop))
+        {
+            if (FAILED(pDesktopManagerInternal->GetAdjacentDesktop(pDesktop, LeftDirection, &pFallbackDesktop)))
+                pDesktopManagerInternal->GetAdjacentDesktop(pDesktop, RightDirection, &pFallbackDesktop);
+        }
+
+        CHECK(pDesktopManagerInternal->RemoveDesktop(pDesktop, pFallbackDesktop), _T("RemoveDesktop"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        _ftprintf(stderr, _T("Unknown desktop\n"));
+        return EXIT_FAILURE;
+    }
+}
+
+int RemoveDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop)
+{
+    CComPtr<Win10::IVirtualDesktopManagerInternal> pDesktopManagerInternal10;
+    CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
+    //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+    if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
+        return RemoveDesktop<Win10::IVirtualDesktop>(-pDesktopManagerInternal10, -GetDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strDesktop));
+    else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
+        return RemoveDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, -GetDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strDesktop));
+    else
+    {
+        CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+}
+
+const TCHAR* GetNextArg(int argc, const TCHAR* const argv[], int* arg)
+{
+    if (argc > *arg)
+        return argv[++(*arg)];
+    else
+        return nullptr;
+}
+
+int _tmain(const int argc, const TCHAR* const argv[])
 {
     CHECK(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED), _T("CoInitialize"), EXIT_FAILURE);
 
@@ -387,27 +465,62 @@ int _tmain(int argc, const TCHAR* const argv[])
         CComPtr<IServiceProvider> pServiceProvider;
         CHECK(pServiceProvider.CoCreateInstance(CLSID_ImmersiveShell, NULL, CLSCTX_LOCAL_SERVER), _T("creating CLSID_ImmersiveShell"), EXIT_FAILURE);
 
-        const TCHAR* cmd = argc > 0 ? argv[1] : nullptr;
-        const TCHAR* wnd = argc > 1 ? argv[2] : nullptr;
-        const TCHAR* desktop = argc > 1 ? argv[2] : nullptr;
-        const TCHAR* showviews = argc > 1 ? argv[2] : nullptr;
-        const TCHAR* name = argc > 1 ? argv[3] : nullptr;
+        int arg = 0;
+        const TCHAR* cmd = GetNextArg(argc, argv, &arg);
 
-        if (cmd != nullptr && _tcsicmp(cmd, _T("current")) == 0)
-            return ShowCurrentDesktop(pServiceProvider);
-        else if (cmd != nullptr && _tcsicmp(cmd, _T("views")) == 0)
-            return ListViews(pServiceProvider);
-        else if (cmd != nullptr && _tcsicmp(cmd, _T("list")) == 0)
-            return ListDesktops(pServiceProvider, showviews != nullptr && _tcsicmp(showviews, _T("/views")) == 0);
-        else if (cmd != nullptr && wnd != nullptr && _tcsicmp(cmd, _T("pin")) == 0)
-            return PinView(pServiceProvider, GetWindow(wnd), TRUE);
-        else if (cmd != nullptr && wnd != nullptr && _tcsicmp(cmd, _T("unpin")) == 0)
-            return PinView(pServiceProvider, GetWindow(wnd), FALSE);
-        else if (cmd != nullptr && desktop != nullptr && _tcsicmp(cmd, _T("switch")) == 0)
-            return SwitchDesktop(pServiceProvider, desktop);
-        else if (cmd != nullptr && desktop != nullptr && _tcsicmp(cmd, _T("rename")) == 0 && name != nullptr)
-            return RenameDesktop(pServiceProvider, desktop, name);
-        else
+        bool showusage = true;
+
+        if (cmd != nullptr)
+        {
+            if (_tcsicmp(cmd, _T("current")) == 0)
+                return ShowCurrentDesktop(pServiceProvider);
+            else if (_tcsicmp(cmd, _T("views")) == 0)
+                return ListViews(pServiceProvider);
+            else if (_tcsicmp(cmd, _T("list")) == 0)
+            {
+                const TCHAR* showviews = GetNextArg(argc, argv, &arg);
+                bool bshowviews = showviews != nullptr && _tcsicmp(showviews, _T("/views")) == 0;
+                return ListDesktops(pServiceProvider, bshowviews);
+            }
+            else if (_tcsicmp(cmd, _T("pin")) == 0)
+            {
+                const TCHAR* wnd = GetNextArg(argc, argv, &arg);
+                if (wnd != nullptr)
+                    return PinView(pServiceProvider, GetWindow(wnd), TRUE);
+            }
+            else if (_tcsicmp(cmd, _T("unpin")) == 0)
+            {
+                const TCHAR* wnd = GetNextArg(argc, argv, &arg);
+                if (wnd != nullptr)
+                    return PinView(pServiceProvider, GetWindow(wnd), FALSE);
+            }
+            else if (_tcsicmp(cmd, _T("switch")) == 0)
+            {
+                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+                if (desktop != nullptr)
+                    return SwitchDesktop(pServiceProvider, desktop);
+            }
+            else if (_tcsicmp(cmd, _T("create")) == 0)
+            {
+                const TCHAR* name = GetNextArg(argc, argv, &arg);
+                return CreateDesktop(pServiceProvider, name);
+            }
+            else if (_tcsicmp(cmd, _T("remove")) == 0)
+            {
+                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+                if (desktop != nullptr)
+                    return RemoveDesktop(pServiceProvider, desktop);
+            }
+            else if (_tcsicmp(cmd, _T("rename")) == 0)
+            {
+                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+                const TCHAR* name = GetNextArg(argc, argv, &arg);
+                if (desktop != nullptr && name != nullptr)
+                    return RenameDesktop(pServiceProvider, desktop, name);
+            }
+        }
+
+        if (showusage)
         {
             _tprintf(_T("Desktop [cmd] <options>\n\n"));
             _tprintf(_T("where [cmd] is one of:\n"));
@@ -418,8 +531,8 @@ int _tmain(int argc, const TCHAR* const argv[])
             _tprintf(_T("  unpin <HWND>\n"));
             _tprintf(_T("  switch <desktop>\n"));
             _tprintf(_T("  rename <desktop> <name>\n"));
-            //_tprintf(_T("  create <name>\n"));
-            //_tprintf(_T("  remove <desktop>\n"));
+            _tprintf(_T("  create <name>\n"));
+            _tprintf(_T("  remove <desktop>\n"));
             _tprintf(_T("\n"));
             _tprintf(_T("where <desktop> is one of:>\n"));
             _tprintf(_T("  {current}\n"));
