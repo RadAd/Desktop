@@ -42,17 +42,17 @@ void PrintDesktop(VD* pDesktop, int dn)
     CHECK(WindowsDeleteString(s), _T("WindowsDeleteString"), void());
 }
 
-template <class VDTypes>
-int ShowCurrentDesktop(CComPtr<typename VDTypes::IVirtualDesktopManagerInternal> pDesktopManagerInternal)
+template <class VD, class VD2 = VD, class VDMI>
+int ShowCurrentDesktop(VDMI* pDesktopManagerInternal)
 {
-    CComPtr<typename VDTypes::IVirtualDesktop> pCurrentDesktop;
-    CHECK(GetCurrentDesktop(-pDesktopManagerInternal, &pCurrentDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
+    CComPtr<VD> pCurrentDesktop;
+    CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pCurrentDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
 
     CComPtr<IObjectArray> pDesktopArray;
-    CHECK(GetDesktops(-pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
+    CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
 
     int dn = 0;
-    for (CComPtr<typename VDTypes::IVirtualDesktop2> pDesktop : ObjectArrayRange<typename VDTypes::IVirtualDesktop2>(pDesktopArray))
+    for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
     {
         if (pDesktop.IsEqualObject(pCurrentDesktop))
         {
@@ -68,9 +68,9 @@ int ShowCurrentDesktop(IServiceProvider* pServiceProvider)
     CComPtr<Win10::IVirtualDesktopManagerInternal> pDesktopManagerInternal10;
     CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
     if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
-        return ShowCurrentDesktop<Win10VDTypes>(pDesktopManagerInternal10);
+        return ShowCurrentDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10);
     else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
-        return ShowCurrentDesktop<Win11VDTypes>(pDesktopManagerInternal11);
+        return ShowCurrentDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11);
     else
     {
         CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
@@ -119,11 +119,11 @@ int ListViews(IServiceProvider* pServiceProvider)
     return EXIT_SUCCESS;
 }
 
-template <class VDTypes>
-int ListDesktops(IServiceProvider* pServiceProvider, CComPtr<typename VDTypes::IVirtualDesktopManagerInternal> pDesktopManagerInternal, bool bShowViews)
+template <class VD, class VDMI>
+int ListDesktops(IServiceProvider* pServiceProvider, VDMI* pDesktopManagerInternal, bool bShowViews)
 {
     CComPtr<IObjectArray> pDesktopArray;
-    CHECK(GetDesktops(-pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
+    CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
 
     if (bShowViews)
     {
@@ -137,7 +137,7 @@ int ListDesktops(IServiceProvider* pServiceProvider, CComPtr<typename VDTypes::I
         CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopPinnedApps, &pVirtualDesktopPinnedApps), _T("obtaining IID_IVirtualDesktopPinnedApps"), EXIT_FAILURE);
 
         int dn = 0;
-        for (CComPtr<typename VDTypes::IVirtualDesktop2> pDesktop : ObjectArrayRange<typename VDTypes::IVirtualDesktop2>(pDesktopArray))
+        for (CComPtr<VD> pDesktop : ObjectArrayRange<VD>(pDesktopArray))
         {
             ++dn;
 
@@ -176,7 +176,7 @@ int ListDesktops(IServiceProvider* pServiceProvider, CComPtr<typename VDTypes::I
     else
     {
         int dn = 0;
-        for (CComPtr<typename VDTypes::IVirtualDesktop2> pDesktop : ObjectArrayRange<typename VDTypes::IVirtualDesktop2>(pDesktopArray))
+        for (CComPtr<VD> pDesktop : ObjectArrayRange<VD>(pDesktopArray))
         {
             ++dn;
 
@@ -192,9 +192,9 @@ int ListDesktops(IServiceProvider* pServiceProvider, bool bShowViews)
     CComPtr<Win10::IVirtualDesktopManagerInternal> pDesktopManagerInternal10;
     CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
     if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
-        return ListDesktops<Win10VDTypes>(pServiceProvider, pDesktopManagerInternal10, bShowViews);
+        return ListDesktops<Win10::IVirtualDesktop2>(pServiceProvider, -pDesktopManagerInternal10, bShowViews);
     else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
-        return ListDesktops<Win11VDTypes>(pServiceProvider, pDesktopManagerInternal11, bShowViews);
+        return ListDesktops<Win11::IVirtualDesktop>(pServiceProvider, -pDesktopManagerInternal11, bShowViews);
     else
     {
         CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
@@ -242,20 +242,20 @@ HWND GetWindow(const TCHAR* s)
         return static_cast<HWND>(UlongToHandle(_tcstoul(s, nullptr, 0)));
 }
 
-template <class VDTypes>
-CComPtr<typename VDTypes::IVirtualDesktop> GetAdjacentDesktop(typename VDTypes::IVirtualDesktopManagerInternal* pDesktopManagerInternal, AdjacentDesktop uDirection)
+template <class VD, class VDMI>
+CComPtr<VD> GetAdjacentDesktop(VDMI* pDesktopManagerInternal, AdjacentDesktop uDirection)
 {
-    CComPtr<typename VDTypes::IVirtualDesktop> pDesktop;
+    CComPtr<VD> pDesktop;
     CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pDesktop), _T("GetCurrentDesktop"), {});
 
-    CComPtr<typename VDTypes::IVirtualDesktop> pAdjacentDesktop;
+    CComPtr<VD> pAdjacentDesktop;
     CHECK(pDesktopManagerInternal->GetAdjacentDesktop(pDesktop, uDirection, &pAdjacentDesktop), _T("GetAdjacentDesktop"), {});
 
     return pAdjacentDesktop;
 }
 
-template <class VDTypes>
-CComPtr<typename VDTypes::IVirtualDesktop> GetDesktop(typename VDTypes::IVirtualDesktopManagerInternal* pDesktopManagerInternal, const LPCTSTR sDesktop)
+template <class VD, class VD2 = VD, class VDMI>
+CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
 {
     // TODO Support
     // by name
@@ -265,22 +265,22 @@ CComPtr<typename VDTypes::IVirtualDesktop> GetDesktop(typename VDTypes::IVirtual
         return {};
     else if (_tcsicmp(sDesktop, _T("{current}")) == 0)
     {
-        CComPtr<typename VDTypes::IVirtualDesktop> pDesktop;
+        CComPtr<VD> pDesktop;
         CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pDesktop), _T("GetCurrentDesktop"), {});
         return pDesktop;
     }
     else if (_tcsicmp(sDesktop, _T("{prev}")) == 0)
-        return GetAdjacentDesktop<VDTypes>(pDesktopManagerInternal, LeftDirection);
+        return GetAdjacentDesktop<VD>(pDesktopManagerInternal, LeftDirection);
     else if (_tcsicmp(sDesktop, _T("{next}")) == 0)
-        return GetAdjacentDesktop<VDTypes>(pDesktopManagerInternal, RightDirection);
+        return GetAdjacentDesktop<VD>(pDesktopManagerInternal, RightDirection);
     else if (std::_istdigit(sDesktop[0]))
     {
         int i = _tstoi(sDesktop);
-        CComPtr<typename VDTypes::IVirtualDesktop> pDesktop;
 
         CComPtr<IObjectArray> pDesktopArray;
         CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), {});
 
+        CComPtr<VD> pDesktop;
         CHECK(pDesktopArray->GetAt(i, IID_PPV_ARGS(&pDesktop)), _T("GetAt"), {});
 
         return pDesktop;
@@ -293,12 +293,12 @@ CComPtr<typename VDTypes::IVirtualDesktop> GetDesktop(typename VDTypes::IVirtual
         WCHAR wDesktop[100];
         MultiByteToWideChar(CP_UTF8, 0, sDesktop, -1, wDesktop, ARRAYSIZE(wDesktop));
 #endif
-        CComPtr<typename VDTypes::IVirtualDesktop> pRetDesktop;
+        CComPtr<VD> pRetDesktop;
 
         CComPtr<IObjectArray> pDesktopArray;
         CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), {});
 
-        for (CComPtr<typename VDTypes::IVirtualDesktop2> pDesktop : ObjectArrayRange<typename VDTypes::IVirtualDesktop2>(pDesktopArray))
+        for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
         {
             HSTRING s = NULL;
             CHECK(pDesktop->GetName(&s), _T("GetName"), {});
@@ -314,12 +314,12 @@ CComPtr<typename VDTypes::IVirtualDesktop> GetDesktop(typename VDTypes::IVirtual
     }
 }
 
-template <class VDTypes>
-int SwitchDesktop(typename VDTypes::IVirtualDesktopManagerInternal* pDesktopManagerInternal, CComPtr<typename VDTypes::IVirtualDesktop> pDesktop)
+template <class VD, class VDMI>
+int DoSwitchDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop)
 {
     if (pDesktop)
     {
-        CHECK(SwitchDesktop(pDesktopManagerInternal, -pDesktop), _T("SwitchDesktop"), EXIT_FAILURE);
+        CHECK(SwitchDesktop(pDesktopManagerInternal, pDesktop), _T("SwitchDesktop"), EXIT_FAILURE);
         return EXIT_SUCCESS;
     }
     else
@@ -335,9 +335,9 @@ int SwitchDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop)
     CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
     //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
     if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
-        return SwitchDesktop<Win10VDTypes>(pDesktopManagerInternal10, GetDesktop<Win10VDTypes>(pDesktopManagerInternal10, strDesktop));
+        return DoSwitchDesktop(-pDesktopManagerInternal10, -GetDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strDesktop));
     else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
-        return SwitchDesktop<Win11VDTypes>(pDesktopManagerInternal11, GetDesktop<Win11VDTypes>(pDesktopManagerInternal11, strDesktop));
+        return DoSwitchDesktop(-pDesktopManagerInternal11, -GetDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strDesktop));
     else
     {
         CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
@@ -345,8 +345,8 @@ int SwitchDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop)
     }
 }
 
-template <class VDTypes>
-int RenameDesktop(typename VDTypes::IVirtualDesktopManagerInternal2* pDesktopManagerInternal, CComPtr<typename VDTypes::IVirtualDesktop> pDesktop, LPCTSTR strName)
+template <class VD, class VDMI>
+int RenameDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop, LPCTSTR strName)
 {
     if (pDesktop)
     {
@@ -369,9 +369,9 @@ int RenameDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop, LPCTST
     CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
     //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
     if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
-        return RenameDesktop<Win10VDTypes>(pDesktopManagerInternal10, GetDesktop<Win10VDTypes>(pDesktopManagerInternal10, strDesktop), strName);
+        return RenameDesktop(-pDesktopManagerInternal10, -GetDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strDesktop), strName);
     else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
-        return RenameDesktop<Win11VDTypes>(pDesktopManagerInternal11, GetDesktop<Win11VDTypes>(pDesktopManagerInternal11, strDesktop), strName);
+        return RenameDesktop(-pDesktopManagerInternal11, -GetDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strDesktop), strName);
     else
     {
         CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);

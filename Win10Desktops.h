@@ -258,7 +258,7 @@ IVirtualDesktopManagerInternal : public IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE GetCount(
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _Out_ UINT* pCount) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE MoveViewToDesktop(
@@ -270,11 +270,11 @@ public:
         _Out_ BOOL* pfCanViewMoveDesktops) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetCurrentDesktop(
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _Out_ IVirtualDesktop** desktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetDesktops(
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _Out_ IObjectArray** ppDesktops) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE GetAdjacentDesktop(
@@ -283,16 +283,16 @@ public:
         _Out_ IVirtualDesktop** ppAdjacentDesktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE SwitchDesktop(
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _In_ IVirtualDesktop* pDesktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE CreateDesktopW(
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _Out_ IVirtualDesktop** ppNewDesktop) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE MoveDesktop(    // New for Win11
         _In_ IVirtualDesktop* desktop,
-        _In_ HMONITOR monitor,
+        _In_opt_ HMONITOR monitor,
         _In_ INT32 index) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE RemoveDesktop(
@@ -372,6 +372,18 @@ public:
         _In_ HSTRING p1) = 0;
 };
 
+MIDL_INTERFACE("0CD45E71-D927-4F15-8B0A-8FEF525337BF")
+IVirtualDesktopNotificationService : public IUnknown
+{
+public:
+    virtual HRESULT STDMETHODCALLTYPE Register(
+        _In_ IVirtualDesktopNotification * pNotification,
+        _Out_ DWORD * pdwCookie) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE Unregister(
+        _In_ DWORD dwCookie) = 0;
+};
+
 }
 
 namespace Win11 {
@@ -427,39 +439,19 @@ public:
 
 const __declspec(selectany) IID& IID_IVirtualDesktopNotification = __uuidof(IVirtualDesktopNotification);
 
-}
-
 MIDL_INTERFACE("0CD45E71-D927-4F15-8B0A-8FEF525337BF")
 IVirtualDesktopNotificationService : public IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE Register(
-        _In_ Win10::IVirtualDesktopNotification* pNotification,
-        _Out_ DWORD* pdwCookie) = 0;
+        _In_ IVirtualDesktopNotification * pNotification,
+        _Out_ DWORD * pdwCookie) = 0;
 
     virtual HRESULT STDMETHODCALLTYPE Unregister(
         _In_ DWORD dwCookie) = 0;
 };
 
-struct Win10VDTypes
-{
-    typedef Win10::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal;
-    typedef Win10::IVirtualDesktopManagerInternal2 IVirtualDesktopManagerInternal2;
-    typedef Win10::IVirtualDesktopManagerInternal3 IVirtualDesktopManagerInternal3;
-    typedef Win10::IVirtualDesktop IVirtualDesktop;
-    typedef Win10::IVirtualDesktop2 IVirtualDesktop2;
-    typedef Win10::IVirtualDesktopNotification IVirtualDesktopNotification;
-};
-
-struct Win11VDTypes
-{
-    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal;
-    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal2;
-    typedef Win11::IVirtualDesktopManagerInternal IVirtualDesktopManagerInternal3;
-    typedef Win11::IVirtualDesktop IVirtualDesktop;
-    typedef Win11::IVirtualDesktop IVirtualDesktop2;
-    typedef Win11::IVirtualDesktopNotification IVirtualDesktopNotification;
-};
+}
 
 template <class VDMI, class VD>
 inline HRESULT GetCurrentDesktop(VDMI* pDesktopManagerInternal, VD** desktop)
@@ -495,4 +487,16 @@ template <>
 inline HRESULT SwitchDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop* desktop)
 {
     return pDesktopManagerInternal->SwitchDesktop(NULL, desktop);
+}
+
+template <class VDMI, class VD>
+inline HRESULT CreateDesktop(VDMI* pDesktopManagerInternal, VD** desktop)
+{
+    return pDesktopManagerInternal->CreateDesktop(desktop);
+}
+
+template <>
+inline HRESULT CreateDesktop(Win11::IVirtualDesktopManagerInternal* pDesktopManagerInternal, Win11::IVirtualDesktop** desktop)
+{
+    return pDesktopManagerInternal->CreateDesktop(NULL, desktop);
 }
