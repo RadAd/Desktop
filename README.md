@@ -21,7 +21,7 @@ where [cmd] is one of:
   create <name>
   remove <desktop>
 
-where <desktop> is one of:>
+where <desktop> is one of:
   {current}
   {prev}
   {next}
