@@ -534,7 +534,7 @@ int _tmain(const int argc, const TCHAR* const argv[])
             _tprintf(_T("  create <name>\n"));
             _tprintf(_T("  remove <desktop>\n"));
             _tprintf(_T("\n"));
-            _tprintf(_T("where <desktop> is one of:>\n"));
+            _tprintf(_T("where <desktop> is one of:\n"));
             _tprintf(_T("  {current}\n"));
             _tprintf(_T("  {prev}\n"));
             _tprintf(_T("  {next}\n"));
