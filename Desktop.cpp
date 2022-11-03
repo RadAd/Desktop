@@ -226,6 +226,8 @@ int PinView(IServiceProvider* pServiceProvider, HWND hWnd, BOOL bPin)
 
 HWND GetWindow(const TCHAR* s)
 {
+    // TODO Support
+    // by title
     if (s == nullptr)
         return NULL;
     else if (_tcsicmp(s, _T("{cursor}")) == 0)
@@ -258,9 +260,7 @@ template <class VD, class VD2 = VD, class VDMI>
 CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
 {
     // TODO Support
-    // by name
     // by guid
-    // by position
     if (sDesktop == nullptr)
         return {};
     else if (_tcsicmp(sDesktop, _T("{current}")) == 0)
@@ -457,93 +457,113 @@ const TCHAR* GetNextArg(int argc, const TCHAR* const argv[], int* arg)
         return nullptr;
 }
 
+template <class T>
+class AutoCall
+{
+public:
+    AutoCall(T* f)
+        : f(f)
+    {
+    }
+
+    ~AutoCall()
+    {
+        f();
+    }
+private:
+    T* f;
+};
+
+template <class T>
+AutoCall<T> MakeAutoCall(T* f)
+{
+    return AutoCall<T>(f);
+};
+
 int _tmain(const int argc, const TCHAR* const argv[])
 {
     CHECK(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED), _T("CoInitialize"), EXIT_FAILURE);
+    auto AutoCoUninitialize(MakeAutoCall(CoUninitialize));
 
+    CComPtr<IServiceProvider> pServiceProvider;
+    CHECK(pServiceProvider.CoCreateInstance(CLSID_ImmersiveShell, NULL, CLSCTX_LOCAL_SERVER), _T("creating CLSID_ImmersiveShell"), EXIT_FAILURE);
+
+    int arg = 0;
+    const TCHAR* cmd = GetNextArg(argc, argv, &arg);
+
+    bool showusage = true;
+
+    if (cmd != nullptr)
     {
-        CComPtr<IServiceProvider> pServiceProvider;
-        CHECK(pServiceProvider.CoCreateInstance(CLSID_ImmersiveShell, NULL, CLSCTX_LOCAL_SERVER), _T("creating CLSID_ImmersiveShell"), EXIT_FAILURE);
-
-        int arg = 0;
-        const TCHAR* cmd = GetNextArg(argc, argv, &arg);
-
-        bool showusage = true;
-
-        if (cmd != nullptr)
+        if (_tcsicmp(cmd, _T("current")) == 0)
+            return ShowCurrentDesktop(pServiceProvider);
+        else if (_tcsicmp(cmd, _T("views")) == 0)
+            return ListViews(pServiceProvider);
+        else if (_tcsicmp(cmd, _T("list")) == 0)
         {
-            if (_tcsicmp(cmd, _T("current")) == 0)
-                return ShowCurrentDesktop(pServiceProvider);
-            else if (_tcsicmp(cmd, _T("views")) == 0)
-                return ListViews(pServiceProvider);
-            else if (_tcsicmp(cmd, _T("list")) == 0)
-            {
-                const TCHAR* showviews = GetNextArg(argc, argv, &arg);
-                bool bshowviews = showviews != nullptr && _tcsicmp(showviews, _T("/views")) == 0;
-                return ListDesktops(pServiceProvider, bshowviews);
-            }
-            else if (_tcsicmp(cmd, _T("pin")) == 0)
-            {
-                const TCHAR* wnd = GetNextArg(argc, argv, &arg);
-                if (wnd != nullptr)
-                    return PinView(pServiceProvider, GetWindow(wnd), TRUE);
-            }
-            else if (_tcsicmp(cmd, _T("unpin")) == 0)
-            {
-                const TCHAR* wnd = GetNextArg(argc, argv, &arg);
-                if (wnd != nullptr)
-                    return PinView(pServiceProvider, GetWindow(wnd), FALSE);
-            }
-            else if (_tcsicmp(cmd, _T("switch")) == 0)
-            {
-                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
-                if (desktop != nullptr)
-                    return SwitchDesktop(pServiceProvider, desktop);
-            }
-            else if (_tcsicmp(cmd, _T("create")) == 0)
-            {
-                const TCHAR* name = GetNextArg(argc, argv, &arg);
-                return CreateDesktop(pServiceProvider, name);
-            }
-            else if (_tcsicmp(cmd, _T("remove")) == 0)
-            {
-                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
-                if (desktop != nullptr)
-                    return RemoveDesktop(pServiceProvider, desktop);
-            }
-            else if (_tcsicmp(cmd, _T("rename")) == 0)
-            {
-                const TCHAR* desktop = GetNextArg(argc, argv, &arg);
-                const TCHAR* name = GetNextArg(argc, argv, &arg);
-                if (desktop != nullptr && name != nullptr)
-                    return RenameDesktop(pServiceProvider, desktop, name);
-            }
+            const TCHAR* showviews = GetNextArg(argc, argv, &arg);
+            bool bshowviews = showviews != nullptr && _tcsicmp(showviews, _T("/views")) == 0;
+            return ListDesktops(pServiceProvider, bshowviews);
         }
-
-        if (showusage)
+        else if (_tcsicmp(cmd, _T("pin")) == 0)
         {
-            _tprintf(_T("Desktop [cmd] <options>\n\n"));
-            _tprintf(_T("where [cmd] is one of:\n"));
-            _tprintf(_T("  current\n"));
-            _tprintf(_T("  list [/views]\n"));
-            _tprintf(_T("  views\n"));
-            _tprintf(_T("  pin <HWND>\n"));
-            _tprintf(_T("  unpin <HWND>\n"));
-            _tprintf(_T("  switch <desktop>\n"));
-            _tprintf(_T("  rename <desktop> <name>\n"));
-            _tprintf(_T("  create <name>\n"));
-            _tprintf(_T("  remove <desktop>\n"));
-            _tprintf(_T("\n"));
-            _tprintf(_T("where <desktop> is one of:\n"));
-            _tprintf(_T("  {current}\n"));
-            _tprintf(_T("  {prev}\n"));
-            _tprintf(_T("  {next}\n"));
-            _tprintf(_T("  [desktop number]\n"));
-            _tprintf(_T("  [desktop name]\n"));
+            const TCHAR* wnd = GetNextArg(argc, argv, &arg);
+            if (wnd != nullptr)
+                return PinView(pServiceProvider, GetWindow(wnd), TRUE);
+        }
+        else if (_tcsicmp(cmd, _T("unpin")) == 0)
+        {
+            const TCHAR* wnd = GetNextArg(argc, argv, &arg);
+            if (wnd != nullptr)
+                return PinView(pServiceProvider, GetWindow(wnd), FALSE);
+        }
+        else if (_tcsicmp(cmd, _T("switch")) == 0)
+        {
+            const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+            if (desktop != nullptr)
+                return SwitchDesktop(pServiceProvider, desktop);
+        }
+        else if (_tcsicmp(cmd, _T("create")) == 0)
+        {
+            const TCHAR* name = GetNextArg(argc, argv, &arg);
+            return CreateDesktop(pServiceProvider, name);
+        }
+        else if (_tcsicmp(cmd, _T("remove")) == 0)
+        {
+            const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+            if (desktop != nullptr)
+                return RemoveDesktop(pServiceProvider, desktop);
+        }
+        else if (_tcsicmp(cmd, _T("rename")) == 0)
+        {
+            const TCHAR* desktop = GetNextArg(argc, argv, &arg);
+            const TCHAR* name = GetNextArg(argc, argv, &arg);
+            if (desktop != nullptr && name != nullptr)
+                return RenameDesktop(pServiceProvider, desktop, name);
         }
     }
 
-    CoUninitialize();
+    if (showusage)
+    {
+        _tprintf(_T("Desktop [cmd] <options>\n\n"));
+        _tprintf(_T("where [cmd] is one of:\n"));
+        _tprintf(_T("  current\n"));
+        _tprintf(_T("  list [/views]\n"));
+        _tprintf(_T("  views\n"));
+        _tprintf(_T("  pin <HWND>\n"));
+        _tprintf(_T("  unpin <HWND>\n"));
+        _tprintf(_T("  switch <desktop>\n"));
+        _tprintf(_T("  rename <desktop> <name>\n"));
+        _tprintf(_T("  create <name>\n"));
+        _tprintf(_T("  remove <desktop>\n"));
+        _tprintf(_T("\n"));
+        _tprintf(_T("where <desktop> is one of:\n"));
+        _tprintf(_T("  {current}\n"));
+        _tprintf(_T("  {prev}\n"));
+        _tprintf(_T("  {next}\n"));
+        _tprintf(_T("  [desktop number]\n"));
+        _tprintf(_T("  [desktop name]\n"));
+    }
 
     return EXIT_SUCCESS;
 }
