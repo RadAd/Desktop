@@ -8,9 +8,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Desktop.cpp" />
+    <ClCompile Include="VDNotification.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ComUtils.h" />
     <ClInclude Include="Win10Desktops.h" />
+    <ClInclude Include="VDNotification.h" />
   </ItemGroup>
 </Project>

@@ -76,9 +76,11 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <ClCompile Include="Desktop.cpp" />
+    <ClCompile Include="VDNotification.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ComUtils.h" />
+    <ClInclude Include="VDNotification.h" />
     <ClInclude Include="Win10Desktops.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

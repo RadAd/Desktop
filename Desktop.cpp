@@ -7,6 +7,7 @@
 #include <tchar.h>
 #include "Win10Desktops.h"
 #include "ComUtils.h"
+#include "VDNotification.h"
 #include <combaseapi.h>
 #include <inttypes.h>
 #include <cctype>
@@ -433,15 +434,136 @@ int RemoveDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop)
     }
 }
 
+
 int RemoveDesktop(IServiceProvider* pServiceProvider, LPCTSTR strDesktop)
 {
     CComPtr<Win10::IVirtualDesktopManagerInternal> pDesktopManagerInternal10;
     CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
     //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
     if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
-        return RemoveDesktop<Win10::IVirtualDesktop>(-pDesktopManagerInternal10, -GetDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strDesktop));
+        return RemoveDesktop(-pDesktopManagerInternal10, -GetDesktop<Win10::IVirtualDesktop, Win10::IVirtualDesktop2>(-pDesktopManagerInternal10, strDesktop));
     else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
-        return RemoveDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, -GetDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strDesktop));
+        return RemoveDesktop(-pDesktopManagerInternal11, -GetDesktop<Win11::IVirtualDesktop>(-pDesktopManagerInternal11, strDesktop));
+    else
+    {
+        CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+}
+
+class VDNotification: public IVDNotification
+{
+public:
+    // Win10::IVirtualDesktopNotification
+    virtual void VirtualDesktopCreated(Win10::IVirtualDesktop* pDesktop) override
+    {
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktop2(pDesktop);
+
+        _tprintf(_T("VirtualDesktopCreated\n "));
+        PrintDesktop(-pDesktop2, 0);
+    }
+
+    virtual void VirtualDesktopDestroyed(Win10::IVirtualDesktop* pDesktopDestroyed, Win10::IVirtualDesktop* pDesktopFallback) override
+    {
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktopDestroyed2(pDesktopDestroyed);
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktopFallback2(pDesktopFallback);
+
+        _tprintf(_T("VirtualDesktopDestroyed\n Destroyed: "));
+        PrintDesktop(-pDesktopDestroyed2, 0);
+        _tprintf(_T(" Fallback: "));
+        PrintDesktop(-pDesktopFallback2, 0);
+    }
+
+    virtual void CurrentVirtualDesktopChanged(Win10::IVirtualDesktop* pDesktopOld, Win10::IVirtualDesktop* pDesktopNew) override
+    {
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktopOld2(pDesktopOld);
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktopNew2(pDesktopNew);
+
+        _tprintf(_T("CurrentVirtualDesktopChanged\n Old: "));
+        PrintDesktop(-pDesktopOld2, 0);
+        _tprintf(_T(" New: "));
+        PrintDesktop(-pDesktopNew2, 0);
+    }
+
+    // Win11::IVirtualDesktopNotification
+    virtual void VirtualDesktopCreated(Win11::IVirtualDesktop* pDesktop) override
+    {
+        _tprintf(_T("VirtualDesktopCreated\n "));
+        PrintDesktop(pDesktop, 0);
+    }
+
+    virtual void VirtualDesktopDestroyed(Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override
+    {
+        _tprintf(_T("VirtualDesktopDestroyed\n Destroyed: "));
+        PrintDesktop(pDesktopDestroyed, 0);
+        _tprintf(_T(" Fallback: "));
+        PrintDesktop(pDesktopFallback, 0);
+    }
+
+    virtual void VirtualDesktopMoved(Win11::IVirtualDesktop* pDesktop, int64_t oldIndex, int64_t newIndex) override
+    {
+        _tprintf(_T("VirtualDesktopMoved\n "));
+        PrintDesktop(pDesktop, 0);
+        _tprintf(_T(" From: %d To: %d\n"), static_cast<int>(oldIndex), static_cast<int>(newIndex));
+    }
+
+    virtual void VirtualDesktopNameChanged(Win11::IVirtualDesktop* pDesktop, HSTRING name) override
+    {
+        _tprintf(_T("VirtualDesktopNameChanged\n "));
+        PrintDesktop(pDesktop, 0);
+        _tprintf(_T(" Name:s %ls\n"), WindowsGetStringRawBuffer(name, nullptr));
+    }
+
+    virtual void CurrentVirtualDesktopChanged(Win11::IVirtualDesktop* pDesktopOld, Win11::IVirtualDesktop* pDesktopNew) override
+    {
+        _tprintf(_T("CurrentVirtualDesktopChanged\nOld: "));
+        PrintDesktop(pDesktopOld, 0);
+        _tprintf(_T(" New: "));
+        PrintDesktop(pDesktopNew, 0);
+    }
+};
+
+UINT DoMessageLoop()
+{
+    MSG msg = { };
+    while (GetMessage(&msg, NULL, 0, 0) > 0)
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    return msg.message;
+}
+
+int WatchDesktops(IServiceProvider* pServiceProvider)
+{
+    CComPtr<Win10::IVirtualDesktopManagerInternal> pDesktopManagerInternal10;
+    CComPtr<Win11::IVirtualDesktopManagerInternal> pDesktopManagerInternal11;
+    //CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal), _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
+
+    VDNotification TheVDNotification;
+    DWORD idVirtualDesktopNotification = 0;
+    CComPtr<VirtualDesktopNotification> pNotify = new VirtualDesktopNotification(&TheVDNotification);
+
+    if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal10)))
+    {
+        CComPtr<Win10::IVirtualDesktopNotificationService> pVirtualNotificationService;
+        CHECK(pServiceProvider->QueryService(CLSID_VirtualNotificationService, &pVirtualNotificationService), _T("creating CLSID_IVirtualNotificationService"), EXIT_FAILURE);
+        if (pVirtualNotificationService)
+            CHECK(pVirtualNotificationService->Register(pNotify, &idVirtualDesktopNotification), _T("Register DesktopNotificationService"), EXIT_FAILURE);
+        DoMessageLoop();
+        CHECK(pVirtualNotificationService->Unregister(idVirtualDesktopNotification), _T("Unregister DesktopNotificationService"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
+    else if (SUCCEEDED(pServiceProvider->QueryService(CLSID_VirtualDesktopManagerInternal, &pDesktopManagerInternal11)))
+    {
+        CComPtr<Win11::IVirtualDesktopNotificationService> pVirtualNotificationService;
+        CHECK(pServiceProvider->QueryService(CLSID_VirtualNotificationService, &pVirtualNotificationService), _T("creating CLSID_IVirtualNotificationService"), EXIT_FAILURE);
+        if (pVirtualNotificationService)
+            CHECK(pVirtualNotificationService->Register(pNotify, &idVirtualDesktopNotification), _T("Register DesktopNotificationService"), EXIT_FAILURE);
+        DoMessageLoop();
+        CHECK(pVirtualNotificationService->Unregister(idVirtualDesktopNotification), _T("Unregister DesktopNotificationService"), EXIT_FAILURE);
+        return EXIT_SUCCESS;
+    }
     else
     {
         CHECK(false, _T("obtaining CLSID_VirtualDesktopManagerInternal"), EXIT_FAILURE);
@@ -541,6 +663,16 @@ int _tmain(const int argc, const TCHAR* const argv[])
             if (desktop != nullptr && name != nullptr)
                 return RenameDesktop(pServiceProvider, desktop, name);
         }
+        else if (_tcsicmp(cmd, _T("watch")) == 0)
+        {
+            return WatchDesktops(pServiceProvider);
+        }
+        else
+        {
+            _ftprintf(stderr, _T("Unknown cmd: %s\n"), cmd);
+            return EXIT_FAILURE;
+        }
+
     }
 
     if (showusage)
@@ -556,6 +688,7 @@ int _tmain(const int argc, const TCHAR* const argv[])
         _tprintf(_T("  rename <desktop> <name>\n"));
         _tprintf(_T("  create <name>\n"));
         _tprintf(_T("  remove <desktop>\n"));
+        _tprintf(_T("  watch\n"));
         _tprintf(_T("\n"));
         _tprintf(_T("where <desktop> is one of:\n"));
         _tprintf(_T("  {current}\n"));
