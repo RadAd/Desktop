@@ -23,7 +23,7 @@ typename ATL::CComPtr<T>::_PtrClass* operator-(const ATL::CComPtr<T>& p)
 }
 
 template <class VD>
-void PrintDesktop(VD* pDesktop, int dn)
+void PrintDesktop(VD* pDesktop, UINT dn)
 {
     GUID guid;
     CHECK(pDesktop->GetID(&guid), _T("GetID"), void());
@@ -35,9 +35,9 @@ void PrintDesktop(VD* pDesktop, int dn)
     CHECK(pDesktop->GetName(&s), _T("GetName"), void());
 
     if (s != nullptr)
-        _tprintf(_T("%ls %ls\n"), guidString, WindowsGetStringRawBuffer(s, nullptr));
+        _tprintf(_T("%ls \"%ls\"\n"), guidString, WindowsGetStringRawBuffer(s, nullptr));
     else
-        _tprintf(_T("%ls Desktop %d\n"), guidString, dn);
+        _tprintf(_T("%ls \"Desktop %u\"\n"), guidString, dn);
 
     ::CoTaskMemFree(guidString);
     CHECK(WindowsDeleteString(s), _T("WindowsDeleteString"), void());
@@ -52,7 +52,7 @@ int ShowCurrentDesktop(VDMI* pDesktopManagerInternal)
     CComPtr<IObjectArray> pDesktopArray;
     CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
 
-    int dn = 0;
+    UINT dn = 0;
     for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
     {
         if (pDesktop.IsEqualObject(pCurrentDesktop))
@@ -137,7 +137,7 @@ int ListDesktops(IServiceProvider* pServiceProvider, VDMI* pDesktopManagerIntern
         CComPtr<IVirtualDesktopPinnedApps> pVirtualDesktopPinnedApps;
         CHECK(pServiceProvider->QueryService(CLSID_VirtualDesktopPinnedApps, &pVirtualDesktopPinnedApps), _T("obtaining IID_IVirtualDesktopPinnedApps"), EXIT_FAILURE);
 
-        int dn = 0;
+        UINT dn = 0;
         for (CComPtr<VD> pDesktop : ObjectArrayRange<VD>(pDesktopArray))
         {
             ++dn;
@@ -176,7 +176,7 @@ int ListDesktops(IServiceProvider* pServiceProvider, VDMI* pDesktopManagerIntern
     }
     else
     {
-        int dn = 0;
+        UINT dn = 0;
         for (CComPtr<VD> pDesktop : ObjectArrayRange<VD>(pDesktopArray))
         {
             ++dn;
@@ -299,12 +299,25 @@ CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
         CComPtr<IObjectArray> pDesktopArray;
         CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), {});
 
+        UINT dn = 0;
         for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
         {
+            ++dn;
+
             HSTRING s = NULL;
             CHECK(pDesktop->GetName(&s), _T("GetName"), {});
 
-            if (_wcsicmp(WindowsGetStringRawBuffer(s, nullptr), wDesktop) == 0)
+            if (s == nullptr)
+            {
+                WCHAR wNumDesktop[100];
+                swprintf_s(wNumDesktop, L"Desktop %d", dn);
+                if (_wcsicmp(wNumDesktop, wDesktop) == 0)
+                {
+                    pRetDesktop = pDesktop;
+                    break;
+                }
+            }
+            else if (_wcsicmp(WindowsGetStringRawBuffer(s, nullptr), wDesktop) == 0)
             {
                 pRetDesktop = pDesktop;
                 break;
@@ -726,8 +739,8 @@ int _tmain(const int argc, const TCHAR* const argv[])
         _tprintf(_T("  {current}\n"));
         _tprintf(_T("  {prev}\n"));
         _tprintf(_T("  {next}\n"));
-        _tprintf(_T("  [desktop number]\n"));
-        _tprintf(_T("  [desktop name]\n"));
+        _tprintf(_T("  \"desktop number\"\n"));
+        _tprintf(_T("  \"desktop name\"\n"));
     }
 
     return EXIT_SUCCESS;
