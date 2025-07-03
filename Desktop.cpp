@@ -385,7 +385,6 @@ int CreateDesktop(VDMI* pDesktopManagerInternal, LPCTSTR strName)
 {
     CComPtr<VD> pNewDesktop;
     CComPtr<VD> pOtherDesktop;
-    pDesktopManagerInternal->CreateDesktop(&pNewDesktop);
     CHECK(pDesktopManagerInternal->CreateDesktop(&pNewDesktop), _T("CreateDesktop"), EXIT_FAILURE);
 
     if (strName != nullptr)
