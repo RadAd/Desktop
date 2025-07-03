@@ -353,7 +353,7 @@ int RenameDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop, LPCTSTR strName)
     {
         HSTRING hName = NULL;
         CHECK(WindowsCreateString(strName, UINT32(_tcslen(strName)), &hName), _T("WindowsCreateString"), EXIT_FAILURE);
-        CHECK(pDesktopManagerInternal->SetName(pDesktop, hName), _T("SwitchDesktop"), EXIT_FAILURE);
+        CHECK(pDesktopManagerInternal->SetDesktopName(pDesktop, hName), _T("SwitchDesktop"), EXIT_FAILURE);
         CHECK(WindowsDeleteString(hName), _T("WindowsDeleteString"), EXIT_FAILURE);
         return EXIT_SUCCESS;
     }
@@ -487,6 +487,17 @@ public:
         PrintDesktop(-pDesktopNew2, 0);
     }
 
+    // Win10::IVirtualDesktopNotification2
+
+    virtual void VirtualDesktopNameChanged(Win10::IVirtualDesktop* pDesktop, HSTRING name) override
+    {
+        CComQIPtr<Win10::IVirtualDesktop2> pDesktop2(pDesktop);
+
+        _tprintf(_T("VirtualDesktopNameChanged\n "));
+        PrintDesktop(-pDesktop2, 0);
+        _tprintf(_T(" Name:s %ls\n"), WindowsGetStringRawBuffer(name, nullptr));
+    }
+
     // Win11::IVirtualDesktopNotification
     virtual void VirtualDesktopCreated(Win11::IVirtualDesktop* pDesktop) override
     {
@@ -522,6 +533,26 @@ public:
         PrintDesktop(pDesktopOld, 0);
         _tprintf(_T(" New: "));
         PrintDesktop(pDesktopNew, 0);
+    }
+
+    virtual void VirtualDesktopWallpaperChanged(Win11::IVirtualDesktop* pDesktop, HSTRING name) override
+    {
+        _tprintf(_T("VirtualDesktopWallpaperChanged\n "));
+        PrintDesktop(pDesktop, 0);
+        _tprintf(_T(" Path:s %ls\n"), WindowsGetStringRawBuffer(name, nullptr));
+    }
+
+    virtual void VirtualDesktopSwitched(Win11::IVirtualDesktop* pDesktop, enum VirtualDesktopSwitchType type) override
+    {
+        _tprintf(_T("VirtualDesktopSwitched\n "));
+        PrintDesktop(pDesktop, 0);
+        _tprintf(_T(" Type: %d\n"), static_cast<int>(type));
+    }
+
+    virtual void RemoteVirtualDesktopConnected(Win11::IVirtualDesktop* pDesktop) override
+    {
+        _tprintf(_T("RemoteVirtualDesktopConnected\n "));
+        PrintDesktop(pDesktop, 0);
     }
 };
 

@@ -12,8 +12,6 @@
 #include <inspectable.h>
 #include <ObjectArray.h>
 
-#define FC_USER_MARSHAL void
-
 class DECLSPEC_UUID("C2F03A33-21F5-47FA-B4BB-156362A2F239") ImmersiveShell;
 const CLSID CLSID_ImmersiveShell = __uuidof(ImmersiveShell);
 
@@ -134,8 +132,8 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE IsViewVisible(
-        _In_ IApplicationView* pView,
-        _Out_ BOOL* pfVisible) = 0;
+            _In_ IApplicationView* pView,
+            _Out_ BOOL* pfVisible) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetID(
             _Out_ GUID* pGuid) = 0;
@@ -146,7 +144,7 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE GetName(
-        _Out_ HSTRING* pStr) = 0;
+            _Out_ HSTRING* pStr) = 0;
     };
 
 }
@@ -159,22 +157,17 @@ namespace Win11 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE IsViewVisible(
-        _In_ IApplicationView* pView,
-        _Out_ BOOL* pfVisible) = 0;
+            _In_ IApplicationView* pView,
+            _Out_ BOOL* pfVisible) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetID(
             _Out_ GUID* pGuid) = 0;
-
-#if 0
-        virtual HRESULT STDMETHODCALLTYPE GetMonitor(
-            _Out_ HMONITOR* pMonitor) = 0;
-#endif
 
         virtual HRESULT STDMETHODCALLTYPE GetName(
             _Out_ HSTRING* p0) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetWallpaperPath(
-            _Out_ FC_USER_MARSHAL** p0) = 0;
+            _Out_ HSTRING* p0) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE IsRemote(
             _Out_ BOOL* pfRemote) = 0;
@@ -207,7 +200,7 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE GetCount(
-        _Out_ UINT* pCount) = 0;
+            _Out_ UINT* pCount) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE MoveViewToDesktop(
             _In_ IApplicationView* pView,
@@ -234,10 +227,6 @@ namespace Win10 {
 
         virtual HRESULT STDMETHODCALLTYPE CreateDesktopW(
             _Out_ IVirtualDesktop** ppNewDesktop) = 0;
-
-        virtual HRESULT STDMETHODCALLTYPE MoveDesktop(
-            _In_ IVirtualDesktop* pDesktop,
-            _In_ int index) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE RemoveDesktop(
             _In_ IVirtualDesktop* pRemove,
@@ -259,8 +248,8 @@ namespace Win10 {
         IVirtualDesktopManagerInternal2 : public IVirtualDesktopManagerInternal
     {
     public:
-        virtual HRESULT STDMETHODCALLTYPE SetName(
-        _In_ IVirtualDesktop* p0,
+        virtual HRESULT STDMETHODCALLTYPE SetDesktopName(
+            _In_ IVirtualDesktop* p0,
             _In_ HSTRING name) = 0;
     };
 
@@ -269,8 +258,8 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE Proc15(
-        _In_ IApplicationView* p0,
-        _In_ IApplicationView* p1) = 0;
+            _In_ IApplicationView* p0,
+            _In_ IApplicationView* p1) = 0;
     };
 
 }
@@ -278,12 +267,12 @@ namespace Win10 {
 namespace Win11 {
 
     //MIDL_INTERFACE("B2F925B9-5A0F-4D2E-9F4D-2B1507593C10")
+    //MIDL_INTERFACE("A3175F2D-239C-4BD2-8AA0-EEBA8B0B138E")
     MIDL_INTERFACE("53F5CA0B-158F-4124-900C-057158060B27")
         IVirtualDesktopManagerInternal : public IUnknown
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE GetCount(
-            //_In_opt_ HMONITOR monitor,
             _Out_ UINT* pCount) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE MoveViewToDesktop(
@@ -295,16 +284,9 @@ namespace Win11 {
             _Out_ BOOL* pfCanViewMoveDesktops) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetCurrentDesktop(
-            //_In_opt_ HMONITOR monitor,
             _Out_ IVirtualDesktop** desktop) = 0;
 
-#if 0
-        virtual HRESULT STDMETHODCALLTYPE GetAllCurrentDesktops(
-            _Out_ IObjectArray** ppDesktops) = 0;
-#endif
-
         virtual HRESULT STDMETHODCALLTYPE GetDesktops(
-            //_In_opt_ HMONITOR monitor,
             _Out_ IObjectArray** ppDesktops) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetAdjacentDesktop(
@@ -313,16 +295,13 @@ namespace Win11 {
             _Out_ IVirtualDesktop** ppAdjacentDesktop) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE SwitchDesktop(
-            //_In_opt_ HMONITOR monitor,
             _In_ IVirtualDesktop* pDesktop) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE CreateDesktopW(
-            //_In_opt_ HMONITOR monitor,
             _Out_ IVirtualDesktop** ppNewDesktop) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE MoveDesktop(    // New for Win11
             _In_ IVirtualDesktop* desktop,
-            //_In_opt_ HMONITOR monitor,
             _In_ INT32 index) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE RemoveDesktop(
@@ -338,11 +317,11 @@ namespace Win11 {
             _Out_ IObjectArray** ppViews1,
             _Out_ IObjectArray** ppViews2) = 0;
 
-        virtual HRESULT STDMETHODCALLTYPE SetName(
+        virtual HRESULT STDMETHODCALLTYPE SetDesktopName(
             _In_ IVirtualDesktop* p0,
             _In_ HSTRING name) = 0;
 
-        virtual HRESULT STDMETHODCALLTYPE SetWallpaper(
+        virtual HRESULT STDMETHODCALLTYPE SetDesktopWallpaper(
             _In_ IVirtualDesktop* p0,
             _In_ HSTRING name) = 0;
 
@@ -353,22 +332,22 @@ namespace Win11 {
             _In_ IApplicationView* p0,
             _In_ IApplicationView* p1) = 0;
 
-#if 0
-        virtual HRESULT STDMETHODCALLTYPE GetDesktopIsPerMonitor(
-            _Out_ BOOL* p0) = 0;
+        virtual HRESULT STDMETHODCALLTYPE CreateRemoteDesktop(
+            _In_ HSTRING name,
+            _Out_ IVirtualDesktop** desktop) = 0;
 
-        virtual HRESULT STDMETHODCALLTYPE SetDesktopIsPerMonitor(
-            _In_ BOOL p0) = 0;
-#elif 0
-        void CopyDesktopState(IApplicationView pView0, IApplicationView pView1);
-        void CreateRemoteDesktop([MarshalAs(UnmanagedType.HString)] string path, out IVirtualDesktop desktop);
-        void SwitchRemoteDesktop(IVirtualDesktop desktop, IntPtr switchtype);
-        void SwitchDesktopWithAnimation(IVirtualDesktop desktop);
-        void GetLastActiveDesktop(out IVirtualDesktop desktop);
-        void WaitForAnimationToComplete();
-#endif
+        virtual HRESULT STDMETHODCALLTYPE SwitchRemoteDesktop(
+            _In_ IVirtualDesktop* pDesktop,
+            _In_ enum VirtualDesktopSwitchType type) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE SwitchDesktopWithAnimation(
+            _In_ IVirtualDesktop* pDesktop) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetLastActiveDesktop(
+            _Out_ IVirtualDesktop** desktop) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE WaitForAnimationToComplete() = 0;
     };
-
 }
 
 namespace Win10 {
@@ -378,7 +357,7 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopCreated(
-        _In_ IVirtualDesktop* pDesktop) = 0;
+            _In_ IVirtualDesktop* pDesktop) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyBegin(
             _In_ IVirtualDesktop* pDesktopDestroyed,
@@ -407,7 +386,7 @@ namespace Win10 {
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopNameChanged(
-        _In_ IVirtualDesktop* pDesktop,
+            _In_ IVirtualDesktop* pDesktop,
             _In_ HSTRING p1) = 0;
     };
 
@@ -428,41 +407,32 @@ namespace Win10 {
 namespace Win11 {
 
     //MIDL_INTERFACE("CD403E52-DEED-4C13-B437-B98380F2B1E8")
+    //MIDL_INTERFACE("B287FA1C-7771-471A-A2DF-9B6B21F0D675")
     MIDL_INTERFACE("B9E5E94D-233E-49AB-AF5C-2B4541C3AADE")
         IVirtualDesktopNotification : public IUnknown
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopCreated(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktop) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyBegin(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktopDestroyed,
             _In_ IVirtualDesktop* pDesktopFallback) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyFailed(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktopDestroyed,
             _In_ IVirtualDesktop* pDesktopFallback) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopDestroyed(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktopDestroyed,
             _In_ IVirtualDesktop* pDesktopFallback) = 0;
 
-#if 0
-        virtual HRESULT STDMETHODCALLTYPE VirtualDesktopIsPerMonitorChanged(
-            _In_ BOOL isPerMonitor) = 0;
-#endif
-
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopMoved(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktop,
             _In_ int64_t oldIndex,
             _In_ int64_t newIndex) = 0;
 
-        virtual HRESULT STDMETHODCALLTYPE VirtualDesktopNameChanged(
+        virtual HRESULT STDMETHODCALLTYPE VirtualDesktopNameChanged11(
             _In_ IVirtualDesktop* pDesktop,
             _In_ HSTRING name) = 0;
 
@@ -470,7 +440,6 @@ namespace Win11 {
             _In_ IApplicationView* pView) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE CurrentVirtualDesktopChanged(
-            //_In_ IObjectArray* monitors,
             _In_ IVirtualDesktop* pDesktopOld,
             _In_ IVirtualDesktop* pDesktopNew) = 0;
 
@@ -480,7 +449,7 @@ namespace Win11 {
 
         virtual HRESULT STDMETHODCALLTYPE VirtualDesktopSwitched(
             _In_ IVirtualDesktop* pDesktop,
-            _In_ enum VirtualDesktopSwitchType) = 0;
+            _In_ enum VirtualDesktopSwitchType type) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE RemoteVirtualDesktopConnected(
             _In_ IVirtualDesktop* pDesktop) = 0;
