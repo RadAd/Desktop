@@ -47,10 +47,10 @@ template <class VD, class VD2 = VD, class VDMI>
 int ShowCurrentDesktop(VDMI* pDesktopManagerInternal)
 {
     CComPtr<VD> pCurrentDesktop;
-    CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pCurrentDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
+    CHECK(pDesktopManagerInternal->GetCurrentDesktop(&pCurrentDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
 
     CComPtr<IObjectArray> pDesktopArray;
-    CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
+    CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
 
     int dn = 0;
     for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
@@ -124,7 +124,7 @@ template <class VD, class VDMI>
 int ListDesktops(IServiceProvider* pServiceProvider, VDMI* pDesktopManagerInternal, bool bShowViews)
 {
     CComPtr<IObjectArray> pDesktopArray;
-    CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
+    CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), EXIT_FAILURE);
 
     if (bShowViews)
     {
@@ -249,7 +249,7 @@ template <class VD, class VDMI>
 CComPtr<VD> GetAdjacentDesktop(VDMI* pDesktopManagerInternal, AdjacentDesktop uDirection)
 {
     CComPtr<VD> pDesktop;
-    CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pDesktop), _T("GetCurrentDesktop"), {});
+    CHECK(pDesktopManagerInternal->GetCurrentDesktop(&pDesktop), _T("GetCurrentDesktop"), {});
 
     CComPtr<VD> pAdjacentDesktop;
     CHECK(pDesktopManagerInternal->GetAdjacentDesktop(pDesktop, uDirection, &pAdjacentDesktop), _T("GetAdjacentDesktop"), {});
@@ -267,7 +267,7 @@ CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
     else if (_tcsicmp(sDesktop, _T("{current}")) == 0)
     {
         CComPtr<VD> pDesktop;
-        CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pDesktop), _T("GetCurrentDesktop"), {});
+        CHECK(pDesktopManagerInternal->GetCurrentDesktop(&pDesktop), _T("GetCurrentDesktop"), {});
         return pDesktop;
     }
     else if (_tcsicmp(sDesktop, _T("{prev}")) == 0)
@@ -279,7 +279,7 @@ CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
         int i = _tstoi(sDesktop) - 1;
 
         CComPtr<IObjectArray> pDesktopArray;
-        CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), {});
+        CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), {});
 
         CComPtr<VD> pDesktop;
         CHECK(pDesktopArray->GetAt(i, IID_PPV_ARGS(&pDesktop)), _T("GetAt"), {});
@@ -297,7 +297,7 @@ CComPtr<VD> GetDesktop(VDMI* pDesktopManagerInternal, const LPCTSTR sDesktop)
         CComPtr<VD> pRetDesktop;
 
         CComPtr<IObjectArray> pDesktopArray;
-        CHECK(GetDesktops(pDesktopManagerInternal, &pDesktopArray), _T("GetDesktops"), {});
+        CHECK(pDesktopManagerInternal->GetDesktops(&pDesktopArray), _T("GetDesktops"), {});
 
         for (CComPtr<VD2> pDesktop : ObjectArrayRange<VD2>(pDesktopArray))
         {
@@ -320,7 +320,7 @@ int DoSwitchDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop)
 {
     if (pDesktop)
     {
-        CHECK(SwitchDesktop(pDesktopManagerInternal, pDesktop), _T("SwitchDesktop"), EXIT_FAILURE);
+        CHECK(pDesktopManagerInternal->SwitchDesktop(pDesktop), _T("SwitchDesktop"), EXIT_FAILURE);
         return EXIT_SUCCESS;
     }
     else
@@ -384,7 +384,9 @@ template <class VD, class VD2 = VD, class VDMI>
 int CreateDesktop(VDMI* pDesktopManagerInternal, LPCTSTR strName)
 {
     CComPtr<VD> pNewDesktop;
-    CHECK(CreateDesktop(pDesktopManagerInternal, &pNewDesktop), _T("CreateDesktop"), EXIT_FAILURE);
+    CComPtr<VD> pOtherDesktop;
+    pDesktopManagerInternal->CreateDesktop(&pNewDesktop);
+    CHECK(pDesktopManagerInternal->CreateDesktop(&pNewDesktop), _T("CreateDesktop"), EXIT_FAILURE);
 
     if (strName != nullptr)
     {
@@ -417,7 +419,7 @@ int RemoveDesktop(VDMI* pDesktopManagerInternal, VD* pDesktop)
     if (pDesktop)
     {
         CComPtr<VD> pFallbackDesktop;
-        CHECK(GetCurrentDesktop(pDesktopManagerInternal, &pFallbackDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
+        CHECK(pDesktopManagerInternal->GetCurrentDesktop(&pFallbackDesktop), _T("GetCurrentDesktop"), EXIT_FAILURE);
         if (pFallbackDesktop.IsEqualObject(pDesktop))
         {
             if (FAILED(pDesktopManagerInternal->GetAdjacentDesktop(pDesktop, LeftDirection, &pFallbackDesktop)))

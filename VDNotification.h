@@ -38,15 +38,17 @@ public:
     STDMETHODIMP ViewVirtualDesktopChanged(IApplicationView* pView) override;
     STDMETHODIMP CurrentVirtualDesktopChanged(Win10::IVirtualDesktop* pDesktopOld, Win10::IVirtualDesktop* pDesktopNew) override;
 
-    // Win10::IVirtualDesktopNotification
-    STDMETHODIMP VirtualDesktopCreated(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktop) override;
-    STDMETHODIMP VirtualDesktopDestroyBegin(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
-    STDMETHODIMP VirtualDesktopDestroyFailed(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
-    STDMETHODIMP VirtualDesktopDestroyed(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
-    STDMETHODIMP VirtualDesktopIsPerMonitorChanged(_In_ BOOL isPerMonitor) override;
-    STDMETHODIMP VirtualDesktopMoved(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktop, int64_t oldIndex, int64_t newIndex) override;
-    STDMETHODIMP VirtualDesktopNameChanged11(Win11::IVirtualDesktop* pDesktop, HSTRING name) override;
+    // Win11::IVirtualDesktopNotification
+    STDMETHODIMP VirtualDesktopCreated(Win11::IVirtualDesktop* pDesktop) override;
+    STDMETHODIMP VirtualDesktopDestroyBegin(Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
+    STDMETHODIMP VirtualDesktopDestroyFailed(Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
+    STDMETHODIMP VirtualDesktopDestroyed(Win11::IVirtualDesktop* pDesktopDestroyed, Win11::IVirtualDesktop* pDesktopFallback) override;
+    //STDMETHODIMP VirtualDesktopIsPerMonitorChanged(_In_ BOOL isPerMonitor) override;
+    STDMETHODIMP VirtualDesktopMoved(Win11::IVirtualDesktop* pDesktop, int64_t oldIndex, int64_t newIndex) override;
+    STDMETHODIMP VirtualDesktopNameChanged(Win11::IVirtualDesktop* pDesktop, HSTRING name) override;
     STDMETHODIMP ViewVirtualDesktopChanged11(IApplicationView* pView) override;
-    STDMETHODIMP CurrentVirtualDesktopChanged(IObjectArray* monitors, Win11::IVirtualDesktop* pDesktopOld, Win11::IVirtualDesktop* pDesktopNew) override;
+    STDMETHODIMP CurrentVirtualDesktopChanged(Win11::IVirtualDesktop* pDesktopOld, Win11::IVirtualDesktop* pDesktopNew) override;
     STDMETHODIMP VirtualDesktopWallpaperChanged(Win11::IVirtualDesktop* pDesktop, HSTRING name) override;
+    STDMETHODIMP VirtualDesktopSwitched(Win11::IVirtualDesktop* pDesktop, enum VirtualDesktopSwitchType) override;
+    STDMETHODIMP RemoteVirtualDesktopConnected(Win11::IVirtualDesktop* pDesktop) override;
 };
